@@ -1,0 +1,34 @@
+# =========================
+# Beach Robot persistent device names (Jetson Orin Nano)
+# =========================
+
+# ---- Logitech F710 joy (USB device on port 2.1) ----
+SUBSYSTEM=="input", KERNEL=="js*", ENV{ID_PATH}=="platform-3610000.usb-usb-0:2.1:1.0", SYMLINK+="input/js_joy", MODE:="0660", GROUP:="input"
+# Vendor/product fallback for F710 XInput/DInput receivers. Keep this in case
+# the hub path changes when ZED/GNSS/ESP32 are plugged in a different order.
+SUBSYSTEM=="input", KERNEL=="js*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c21f", SYMLINK+="input/js_joy", MODE:="0660", GROUP:="input"
+SUBSYSTEM=="input", KERNEL=="js*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c219", SYMLINK+="input/js_joy", MODE:="0660", GROUP:="input"
+# Keep the F710 receiver awake; autosuspend can make wireless input look alive
+# to joy_node while packets stall under USB bus load.
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="046d", ATTR{idProduct}=="c21f", TEST=="power/control", ATTR{power/control}:="on"
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="046d", ATTR{idProduct}=="c219", TEST=="power/control", ATTR{power/control}:="on"
+
+# ---- ZED Mini (USB device on port 2.2) -> /dev/cam ----
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_PATH}=="platform-3610000.usb-usb-0:2.2", SYMLINK+="cam"
+# vendor/product fallback rule
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="2b03", ATTR{idProduct}=="f681", SYMLINK+="cam"
+
+# ---- ESP32 (Silicon Labs CP210x on port 2.3) -> /dev/esp32 (USB node) ----
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_PATH}=="platform-3610000.usb-usb-0:2.3", SYMLINK+="esp32"
+
+# ---- ESP32 serial port -> /dev/ttyESP32 (stable for ROS/bridge) ----
+# CP210x usually appears as /dev/ttyUSB*
+SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="10c4", ENV{ID_MODEL_ID}=="ea60", ENV{ID_PATH}=="platform-3610000.usb-usb-0:2.3:1.0", \
+  SYMLINK+="ttyESP32", GROUP="dialout", MODE="0660"
+
+# ---- GNSS (FTDI on port 2.4) -> /dev/gnss (USB node) ----
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_PATH}=="platform-3610000.usb-usb-0:2.4", SYMLINK+="gnss"
+
+# ---- GNSS serial port (FTDI interface 1.0) -> /dev/ttyGNSS ----
+SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="0403", ENV{ID_MODEL_ID}=="6015", ENV{ID_PATH}=="platform-3610000.usb-usb-0:2.4:1.0", \
+  SYMLINK+="ttyGNSS", GROUP="dialout", MODE="0660"

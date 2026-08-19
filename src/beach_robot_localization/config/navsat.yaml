@@ -1,0 +1,17 @@
+navsat_transform:
+  ros__parameters:
+    frequency: 20.0
+    delay: 0.0
+
+    magnetic_declination_radians: 0.0   # Location-based adjust later
+    yaw_offset: 0.0                     # using yaw from the IMU
+    zero_altitude: true
+    broadcast_utm_transform: false
+    publish_filtered_gps: false
+    use_odometry_yaw: false            # provide yaw from an IMU topic
+    wait_for_datum: false
+    use_manual_datum: false
+
+    world_frame: odom
+    base_link_frame: base_link
+    odom_frame: odom

@@ -1,0 +1,42 @@
+[
+  {
+    "label": "front_left_kp_pass",
+    "wheel": 1,
+    "kp": 0.18,
+    "ki": 0.0,
+    "kd": 0.0,
+    "target_mps": 0.30,
+    "duration_ms": 3000,
+    "closed_loop": 1
+  },
+  {
+    "label": "front_right_kp_pass",
+    "wheel": 2,
+    "kp": 0.18,
+    "ki": 0.0,
+    "kd": 0.0,
+    "target_mps": 0.30,
+    "duration_ms": 3000,
+    "closed_loop": 1
+  },
+  {
+    "label": "rear_left_kp_pass",
+    "wheel": 3,
+    "kp": 0.08,
+    "ki": 0.0,
+    "kd": 0.0,
+    "target_mps": 1.20,
+    "duration_ms": 3000,
+    "closed_loop": 1
+  },
+  {
+    "label": "rear_right_kp_pass",
+    "wheel": 4,
+    "kp": 0.05,
+    "ki": 0.0,
+    "kd": 0.0,
+    "target_mps": 0.80,
+    "duration_ms": 3000,
+    "closed_loop": 1
+  }
+]

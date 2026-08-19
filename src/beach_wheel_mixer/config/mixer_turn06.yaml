@@ -1,0 +1,55 @@
+wheel_mps_mixer:
+  ros__parameters:
+    input_topic: /cmd_vel
+    output_topic: /wheel_cmd
+
+    front_track_width: 0.734
+    rear_track_width: 1.179
+    wheelbase: 0.950
+
+    # ---- Indoor tile R=0.6 m turn config (tuned 2026-06-17) ----
+    # Based on the sand mixer.yaml. Changes vs sand baseline (all for clean ~0.6 m
+    # rolling arcs at a slow, safe ~0.2 m/s — see CLAUDE.md "Turn-radius tuning"):
+    #   turn_gain_front 1.6 -> 1.5   (at v=0.2 gain 1.6 gave L 0.587 / R 0.544;
+    #                                 1.5 centres the L/R mean on 0.60, errs slightly loose)
+    #   min_turn_radius 0.65 -> 0.50 (0.65 would CLAMP a 0.6 m command -> under-rotate)
+    #   max_w           0.35 -> 0.45 (R=0.6 at v up to 0.27 needs w up to 0.45)
+    # Inside-front track is commanded ~0 at R=0.6 (mild scrub, unavoidable without
+    # under-rotating); harmless at this slow speed. Robot is NOT symmetric: right
+    # turns run ~0.04 m tighter than left.
+    turn_gain_front: 1.5
+    turn_gain_rear: 1.45
+    in_place_linear_threshold: 0.03
+    in_place_angular_threshold: 0.03
+    turn_gain_front_in_place: 1.75
+    turn_gain_rear_in_place: 0.55
+    in_place_linear_bias: 0.03
+    in_place_linear_bias_left: 0.08
+    in_place_linear_bias_right: 0.08
+    min_curve_inner_mps: -0.03
+    min_turn_radius: 0.50
+    rear_yaw_relief: 0.15
+
+    front_left_scale: 1.0
+    front_right_scale: 1.0
+    rear_left_scale: 1.0
+    rear_right_scale: 1.0
+
+    publish_rate_hz: 50.0
+    cmd_timeout_ms: 300
+
+    max_v: 0.35
+    max_w: 0.45
+
+    max_wheel_fl_mps: 1.25
+    max_wheel_fr_mps: 1.10
+    max_wheel_rl_mps: 9.70
+    max_wheel_rr_mps: 8.60
+
+    max_accel_mps2: 0.6
+    max_decel_mps2: 4.0
+
+    dir_fl: 1
+    dir_fr: 1
+    dir_rl: 1
+    dir_rr: 1

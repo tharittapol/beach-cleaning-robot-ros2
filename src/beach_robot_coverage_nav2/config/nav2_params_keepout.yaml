@@ -1,0 +1,143 @@
+amcl:
+  ros__parameters:
+    use_sim_time: false
+bt_navigator:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /odometry/fusion_bno   # the EKF topic the stack actually publishes
+    default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
+    navigators: ["navigate_to_pose", "navigate_through_poses"]
+    navigate_to_pose:
+      plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
+    navigate_through_poses:
+      plugin: "nav2_bt_navigator/NavigateThroughPosesNavigator"
+controller_server:
+  ros__parameters:
+    use_sim_time: false
+    controller_frequency: 20.0
+    failure_tolerance: 300.0
+    controller_plugins: ["FollowPath"]
+    progress_checker_plugins: ["progress_checker"]
+    goal_checker_plugins: ["goal_checker"]
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.3
+      # Allow the external ZED safety E-stop to hold the robot while preserving the goal.
+      movement_time_allowance: 300.0
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.35
+      yaw_goal_tolerance: 2.0
+      stateful: true
+    FollowPath:
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      # --- speed: match joystick teleop limits ---
+      desired_linear_vel: 0.17
+      min_approach_linear_velocity: 0.05
+      # --- heading: never spin-in-place, always move+steer simultaneously ---
+      use_rotate_to_heading: false
+      rotate_to_heading_angular_vel: 0.57
+      # lookahead tuned for R=2.10m arc (sand 2026-06-11): need >= 0.5R = 1.0m
+      lookahead_dist: 1.0
+      min_lookahead_dist: 0.50
+      max_lookahead_dist: 1.5
+      use_velocity_scaled_lookahead_dist: false
+      # --- regulated scaling: threshold = actual turn radius ---
+      # at r=0.30 m: scale=1.0 → v=0.17, ω=0.57 rad/s (same as joystick 45° input)
+      # was 0.50 m → v scaled to 0.10, ω=0.34 → arc 40% slower → wide overshoot
+      use_regulated_linear_velocity_scaling: true
+      regulated_linear_scaling_min_radius: 0.30
+      regulated_linear_scaling_min_speed: 0.05
+      use_cost_regulated_linear_velocity_scaling: false
+      allow_reversing: false
+      transform_tolerance: 0.2
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      use_astar: true
+      allow_unknown: false
+waypoint_follower:
+  ros__parameters:
+    use_sim_time: false
+    loop_rate: 20
+    stop_on_failure: false
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: map
+      robot_base_frame: base_link
+      resolution: 0.10
+      track_unknown_space: false
+      plugins: ["static_layer", "inflation_layer"]
+      filters: ["keepout_filter"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: true
+        subscribe_to_updates: false
+        map_topic: "/keepout_mask"
+      keepout_filter:
+        plugin: "nav2_costmap_2d::KeepoutFilter"
+        enabled: true
+        filter_info_topic: "/costmap_filter_info"
+        transform_tolerance: 0.1
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.6
+        cost_scaling_factor: 10.0
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: odom
+      robot_base_frame: base_link
+      rolling_window: true
+      width: 12
+      height: 12
+      resolution: 0.05
+      track_unknown_space: false
+      plugins: ["voxel_layer", "range_sensor_layer", "inflation_layer"]
+      filters: ["keepout_filter"]
+      keepout_filter:
+        plugin: "nav2_costmap_2d::KeepoutFilter"
+        enabled: true
+        filter_info_topic: "/costmap_filter_info"
+        transform_tolerance: 0.1
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: true
+        observation_sources: zed_points
+        zed_points:
+          topic: "/zed/filtered_cloud"
+          clearing: true
+          marking: true
+          data_type: "PointCloud2"
+          raytrace_max_range: 8.0
+          obstacle_max_range: 6.0
+        # tune for a depth camera:
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 1.5
+      range_sensor_layer:
+        plugin: "nav2_costmap_2d::RangeSensorLayer"
+        enabled: true
+        topics: ["/ultrasonic/left", "/ultrasonic/middle", "/ultrasonic/right"]
+        # มุมกรวยของ ultrasonic (เรเดียน)
+        phi: 0.52
+        # ระยะสูงสุดที่ใช้ marking
+        max_reading: 2.5
+        # ถ้าอ่านได้ max_range ให้เคลียร์ obstacle ตรงแนวเซนเซอร์ได้
+        clear_on_max_reading: true
+        # ระยะปลอดภัยรอบ obstacle ที่ mark จาก ultrasonic
+        inflation_radius: 0.45
+        sensor_frame: ""   # ปล่อยว่างได้ เพราะ Range msg มี frame_id อยู่แล้ว
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.6
+        cost_scaling_factor: 10.0

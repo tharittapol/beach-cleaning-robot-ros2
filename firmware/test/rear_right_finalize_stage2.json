@@ -1,0 +1,13 @@
+[
+  {
+    "label": "rear_right_final_recheck_v2",
+    "wheel": 4,
+    "kp": 0.03,
+    "ki": 0.0,
+    "kd": 0.0,
+    "vmax_mps": 6.85,
+    "target_mps": 0.80,
+    "duration_ms": 4000,
+    "closed_loop": 1
+  }
+]

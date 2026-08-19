@@ -1,0 +1,23 @@
+robot:
+  base_frame: base_link
+  odom_frame: odom
+  map_frame: map
+
+serial:
+  esp32_port: /dev/esp32_beach
+  esp32_baud: 115200
+  gnss_port: /dev/gnss_um982
+  gnss_baud: 115200
+
+control:
+  cmd_timeout_ms: 300
+  max_mps: 1.2
+  max_rps: 1.0
+  max_accel_mps2: 0.8
+  track_width: 0.62
+  wheel_radius: 0.12
+
+modules:
+  use_gnss: true
+  use_zed: true
+  use_coverage: true

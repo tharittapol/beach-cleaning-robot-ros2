@@ -1,0 +1,59 @@
+wheel_mps_mixer:
+  ros__parameters:
+    input_topic: /cmd_vel
+    output_topic: /wheel_cmd
+
+    front_track_width: 0.734
+    rear_track_width: 1.179
+    wheelbase: 0.950
+
+    # ---- PROBE-ONLY OVERRIDES (indoor tile tightest-turn probe 2026-06-17) ----
+    # This file is a TEMPORARY copy of mixer.yaml with two clamps loosened so the
+    # mixer will actually command sub-0.65 m arcs instead of widening them. Do NOT
+    # treat these as tuned values; mixer.yaml (sand) stays the committed baseline.
+    # Use only via:
+    #   ros2 launch beach_robot_localization localization_full_test.launch.py \
+    #     mixer_params_file:=<abs path to this file>
+    # and pass the matching clamps to the tool so it does not mis-flag:
+    #   turn_radius_test ... --mixer-min-radius 0.30 --mixer-max-w 0.85
+    # turn_radius_test publishes straight to /cmd_vel -> mixer, so the mixer's own
+    # max_w below is the only angular clamp in that path (the launch max_angular
+    # arg gates the JOYSTICK teleop only, not this).
+    min_turn_radius: 0.30   # was 0.65 — let the mixer command tight rolling arcs
+
+    turn_gain_front: 1.6
+    turn_gain_rear: 1.45
+    in_place_linear_threshold: 0.03
+    in_place_angular_threshold: 0.03
+    turn_gain_front_in_place: 1.75
+    turn_gain_rear_in_place: 0.55
+    in_place_linear_bias: 0.03
+    in_place_linear_bias_left: 0.08
+    in_place_linear_bias_right: 0.08
+    min_curve_inner_mps: -0.03
+    rear_yaw_relief: 0.15
+
+    front_left_scale: 1.0
+    front_right_scale: 1.0
+    rear_left_scale: 1.0
+    rear_right_scale: 1.0
+
+    publish_rate_hz: 50.0
+    cmd_timeout_ms: 300
+
+    # Raise the mixer's own velocity ceilings so a tight rolling arc is not yaw-clamped.
+    max_v: 0.35
+    max_w: 0.85   # was 0.35 — R=0.30 at v=0.25 needs w=0.83 rad/s
+
+    max_wheel_fl_mps: 1.25
+    max_wheel_fr_mps: 1.10
+    max_wheel_rl_mps: 9.70
+    max_wheel_rr_mps: 8.60
+
+    max_accel_mps2: 0.6
+    max_decel_mps2: 4.0
+
+    dir_fl: 1
+    dir_fr: 1
+    dir_rl: 1
+    dir_rr: 1

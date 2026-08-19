@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>beach_robot_coverage_nav2</name>
+  <version>0.0.0</version>
+  <description>Boustrophedon coverage planner + Nav2 bringup (mapless) with keepout/boundary mask.</description>
+  <maintainer email="you@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>sensor_msgs_py</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>tf_transformations</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_costmap_2d</exec_depend>
+  <exec_depend>beach_robot_localization</exec_depend>
+  <exec_depend>beach_wheel_mixer</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>zed_nav2_cloud_filter</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

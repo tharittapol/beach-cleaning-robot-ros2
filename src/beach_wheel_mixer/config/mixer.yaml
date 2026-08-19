@@ -1,0 +1,64 @@
+wheel_mps_mixer:
+  ros__parameters:
+    input_topic: /cmd_vel
+    output_topic: /wheel_cmd
+
+    front_track_width: 0.734
+    rear_track_width: 1.179
+    # Distance between front track contact center and rear wheel contact center.
+    # The mixer uses this to avoid commanding a turn radius that makes the
+    # front tracks and rear wheels fight each other on high-friction ground.
+    wheelbase: 0.950
+
+    # Start from the smoother indoor baseline, then trim for the higher-friction
+    # outdoor surface. Sand 2026-06-09: 2.45 collapsed the inside front wheel to
+    # ~0.03 m/s (arc degenerated to a pivot, inside track stalled). 1.3 keeps the
+    # inside front command >= ~0.12 m/s (breakaway) so both front tracks drive.
+    turn_gain_front: 1.6  # sand 2026-06-10: ~1.75 m clean turn @ v0.3-0.35 (1.3 gave ~2.0 m); inside front cmd stays >=0.12
+    turn_gain_rear: 1.45
+    in_place_linear_threshold: 0.03
+    in_place_angular_threshold: 0.03
+    # Soft pivot: left/right sides rotate opposite directions. Keep the target
+    # above the drivetrain breakaway speed so PID/floor does not stick-slip.
+    turn_gain_front_in_place: 1.75
+    turn_gain_rear_in_place: 0.55
+    # Inject a tiny forward creep for pure yaw joystick commands. Spin-right
+    # needs a little more because the negative-side wheels pull backward harder.
+    in_place_linear_bias: 0.03
+    in_place_linear_bias_left: 0.08
+    in_place_linear_bias_right: 0.08
+    # Limit yaw dynamically while allowing a small reverse/brake assist on
+    # rolling arcs. The inside wheels were coasting when clamped at zero.
+    min_curve_inner_mps: -0.03
+    # Rolling curves only: cap curvature and reduce rear yaw as the requested
+    # radius gets tight, so the rear round wheels follow instead of drifting or
+    # tearing away from the front tracked section.
+    min_turn_radius: 0.65
+    rear_yaw_relief: 0.15
+
+    front_left_scale: 1.0
+    front_right_scale: 1.0
+    rear_left_scale: 1.0
+    rear_right_scale: 1.0
+
+    publish_rate_hz: 50.0
+    cmd_timeout_ms: 300
+
+    # Conservative floor-test limits. Nav2 can override these later with a
+    # separate config once the drivetrain is validated on sand/grass.
+    max_v: 0.35
+    max_w: 0.35
+
+    # Match current ESP32 VMAX feed-forward tuning.
+    max_wheel_fl_mps: 1.25
+    max_wheel_fr_mps: 1.10
+    max_wheel_rl_mps: 9.70
+    max_wheel_rr_mps: 8.60
+
+    max_accel_mps2: 0.6
+    max_decel_mps2: 4.0
+
+    dir_fl: 1
+    dir_fr: 1
+    dir_rl: 1
+    dir_rr: 1

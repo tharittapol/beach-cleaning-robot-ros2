@@ -1,0 +1,9 @@
+# goal
+float32 duration   # seconds to turn buzzer on
+---
+# result
+bool success
+float32 time_remaining
+---
+# feedback
+float32 time_remaining

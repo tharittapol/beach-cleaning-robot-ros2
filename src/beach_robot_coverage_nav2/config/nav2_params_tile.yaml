@@ -1,0 +1,128 @@
+# Nav2 params WITHOUT the keepout boundary (used by default for coverage).
+# Identical to nav2_params_keepout.yaml except:
+#   * no keepout_filter on either costmap (no boundary enforcement),
+#   * global_costmap drops the static/keepout-mask layer and is instead a rolling window
+#     sized to cover the work area (the static layer used to provide the global size).
+# This is what lets the between-pass deadheads loop outside the cleaning rectangle.
+# Pass use_keepout:=true at launch to fall back to nav2_params_keepout.yaml.
+amcl:
+  ros__parameters:
+    use_sim_time: false
+bt_navigator:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /odometry/fusion_bno   # the EKF topic the stack actually publishes (was /odometry/local, never produced)
+    default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
+    navigators: ["navigate_to_pose", "navigate_through_poses"]
+    navigate_to_pose:
+      plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
+    navigate_through_poses:
+      plugin: "nav2_bt_navigator/NavigateThroughPosesNavigator"
+controller_server:
+  ros__parameters:
+    use_sim_time: false
+    controller_frequency: 20.0
+    failure_tolerance: 300.0
+    controller_plugins: ["FollowPath"]
+    progress_checker_plugins: ["progress_checker"]
+    goal_checker_plugins: ["goal_checker"]
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.3
+      # Allow the external ZED safety E-stop to hold the robot while preserving the goal.
+      movement_time_allowance: 300.0
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.30       # tile 2026-06-19: was 0.20 — robot looped a turn passing 0.21 m from the goal EVERY lap (heading in-tol) but never inside 0.20 -> circled forever (run 153558). 0.30 catches the near pass so the goal succeeds and it moves on. 0.20 was too tight for the arc turn's overshoot.
+      yaw_goal_tolerance: 0.50      # tile 2026-06-17: was 2.0 rad (114!) — turns ended ~15-18 deg off 180/0 so the next lane started crooked and drifted 0.3 m. 0.5 rad ~= 28 deg (not tighter: RTH off, avoid hang)
+      stateful: true
+    FollowPath:
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      desired_linear_vel: 0.20      # tile 2026-06-17: match the turn-tuned 0.2 m/s (R=0.6 -> w=0.33 < mixer max_w 0.45)
+      min_approach_linear_velocity: 0.20
+      use_rotate_to_heading: false  # tile 2026-06-19: global rotate_to_heading is unusable here — min_angle low enough to catch the ~22 deg lane-entry tilt also fires mid in-pass arc (R=0.6 arc carrot is ~62 deg off), so the arcs turn into a stuck pivot-fest (run 184209: 651 in-place-rotate cmds vs 334 driving, only 1 lane done). Squaring the entry must be done at the NODE level (Spin before each lane), not via this global RPP flag.
+      rotate_to_heading_angular_vel: 0.57
+      lookahead_dist: 0.65          # tile 2026-06-19: 0.45 vs 0.65 gave IDENTICAL turn-entry offset (~0.25 m) — the offset is NOT a controller issue. Root: on tile the rear round wheels slip laterally, so RPP's correction (mixer commands the wheel differential, encoders show it) produces almost no yaw (cmd_w -0.27 -> gyro +0.04). The robot physically can't make fine low-speed steering corrections. Kept 0.65 (calmer on clean lanes).
+      min_lookahead_dist: 0.45
+      max_lookahead_dist: 0.90
+      use_velocity_scaled_lookahead_dist: false
+      use_regulated_linear_velocity_scaling: true
+      regulated_linear_scaling_min_radius: 0.30   # tile 2026-06-19: tried slowing the arcs (min_radius 1.20, min_speed 0.10) to cut the turn-exit heading overshoot — BACKFIRED (run 200335): at v=0.10 the rear wheels slip MORE, the R=0.6 arc blew up to R~1.0, robot overshot to y=2.4 and spiralled, only 1 lane. Slow = worse here. Reverted.
+      regulated_linear_scaling_min_speed: 0.20
+      use_cost_regulated_linear_velocity_scaling: false
+      allow_reversing: false
+      transform_tolerance: 0.2
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      use_astar: true
+      allow_unknown: true
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: map
+      robot_base_frame: base_link
+      # Real-robot footprint (base_link = chassis centre). Asymmetric trapezoid: corners are
+      # the 4 wheel centres — front track 0.734 (half 0.367), rear track 1.179 (half 0.590),
+      # wheelbase 0.950 (half 0.475). Replaces the Nav2 default 0.1 m circle.
+      footprint: "[[0.475, 0.367], [0.475, -0.367], [-0.475, -0.590], [-0.475, 0.590]]"
+      resolution: 0.10
+      # No static map without keepout — use a rolling window large enough to contain the
+      # work area + deadhead loops as the robot moves.
+      rolling_window: true
+      width: 40
+      height: 40
+      track_unknown_space: false
+      plugins: ["inflation_layer"]
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.6
+        cost_scaling_factor: 10.0
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: odom
+      robot_base_frame: base_link
+      # Real-robot footprint (see global_costmap note): wheel-centre trapezoid, not a circle.
+      footprint: "[[0.475, 0.367], [0.475, -0.367], [-0.475, -0.590], [-0.475, 0.590]]"
+      rolling_window: true
+      width: 12
+      height: 12
+      resolution: 0.05
+      track_unknown_space: false
+      plugins: ["voxel_layer", "range_sensor_layer", "inflation_layer"]
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: true
+        observation_sources: zed_points
+        zed_points:
+          topic: "/zed/filtered_cloud"
+          clearing: true
+          marking: true
+          data_type: "PointCloud2"
+          raytrace_max_range: 8.0
+          obstacle_max_range: 6.0
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 1.5
+      range_sensor_layer:
+        plugin: "nav2_costmap_2d::RangeSensorLayer"
+        enabled: true
+        topics: ["/ultrasonic/left", "/ultrasonic/middle", "/ultrasonic/right"]
+        phi: 0.52
+        max_reading: 2.5
+        clear_on_max_reading: true
+        inflation_radius: 0.45
+        sensor_frame: ""
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.6
+        cost_scaling_factor: 10.0

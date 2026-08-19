@@ -1,0 +1,56 @@
+wheel_mps_mixer:
+  ros__parameters:
+    input_topic: /cmd_vel
+    output_topic: /wheel_cmd
+
+    front_track_width: 0.734
+    rear_track_width: 1.179
+    wheelbase: 0.950
+
+    # ---- PROBE-ONLY (indoor tile tight skid-turn probe 2026-06-17) ----
+    # Goal: reach ~0.3-0.4 m EFFECTIVE turn while still creeping forward (v>0), i.e.
+    # NOT a stationary pivot. R below half-track means the inside wheels must
+    # reverse, so the rolling-arc clamp (min_curve_inner_mps -0.03) blocks it; here
+    # we open that clamp to let them reverse. The rear round wheels WILL scrub hard.
+    # Non-destructive: sand mixer.yaml is untouched. Use only via:
+    #   ros2 launch beach_robot_localization localization_full_test.launch.py \
+    #     mixer_params_file:=<abs path to this file>
+    #   turn_radius_test ... --odom-topic /odometry/fusion_bno \
+    #     --mixer-min-radius 0.30 --mixer-max-w 0.85
+    min_turn_radius: 0.30
+    min_curve_inner_mps: -0.30   # was -0.03 — let inside wheels reverse so it can rotate tighter
+
+    turn_gain_front: 1.6
+    turn_gain_rear: 1.45
+    in_place_linear_threshold: 0.03
+    in_place_angular_threshold: 0.03
+    turn_gain_front_in_place: 1.75
+    turn_gain_rear_in_place: 0.55
+    in_place_linear_bias: 0.03
+    in_place_linear_bias_left: 0.08
+    in_place_linear_bias_right: 0.08
+    rear_yaw_relief: 0.15
+
+    front_left_scale: 1.0
+    front_right_scale: 1.0
+    rear_left_scale: 1.0
+    rear_right_scale: 1.0
+
+    publish_rate_hz: 50.0
+    cmd_timeout_ms: 300
+
+    max_v: 0.35
+    max_w: 0.85   # R=0.30 at v=0.25 needs w=0.83 rad/s
+
+    max_wheel_fl_mps: 1.25
+    max_wheel_fr_mps: 1.10
+    max_wheel_rl_mps: 9.70
+    max_wheel_rr_mps: 8.60
+
+    max_accel_mps2: 0.6
+    max_decel_mps2: 4.0
+
+    dir_fl: 1
+    dir_fr: 1
+    dir_rl: 1
+    dir_rr: 1

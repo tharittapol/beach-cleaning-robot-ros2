@@ -1,0 +1,15 @@
+[Unit]
+Description=Beach Robot Bringup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_LINUX_USER
+Environment=ROS_DOMAIN_ID=0
+ExecStart=/bin/bash -lc "source /opt/ros/$ROS_DISTRO/setup.bash && source /home/YOUR_LINUX_USER/beach_robot_ws/install/setup.bash && ros2 launch beach_robot_bringup hardware_bringup.launch.py"
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

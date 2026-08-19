@@ -1,0 +1,347 @@
+<?xml version="1.0"?>
+<robot name="beach_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- =========================
+       Defaults (tune later)
+       ========================= -->
+  <xacro:property name="wheel_radius" value="0.165"/>
+  <xacro:property name="wheel_width"  value="0.08"/>
+  <xacro:property name="wheelbase"    value="0.975"/>
+  <xacro:property name="front_track_width" value="0.75"/>
+  <xacro:property name="rear_track_width"  value="1.17"/>
+  <xacro:property name="base_length"  value="1.20"/>
+  <xacro:property name="base_width"   value="1.30"/>
+  <xacro:property name="base_height"  value="0.25"/>
+
+  <!-- frames -->
+  <xacro:property name="base_frame" value="base_link"/>
+  <xacro:property name="imu_frame"  value="imu_link"/>
+  <xacro:property name="gps_frame"  value="gps_link"/>
+  <xacro:property name="zed_frame"  value="zed_link"/>
+  <xacro:property name="us_front"   value="ultrasonic_front_link"/>
+  <xacro:property name="us_left"    value="ultrasonic_left_link"/>
+  <xacro:property name="us_right"   value="ultrasonic_right_link"/>
+
+  <!-- =========================
+       Base footprint (root at ground, no inertia)
+       ========================= -->
+  <link name="base_footprint"/>
+
+  <!-- base_link is robot body frame (center of chassis) -->
+  <joint name="base_footprint_to_base_link" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="${base_frame}"/>
+    <!-- base_link height above ground -->
+    <origin xyz="0 0 ${wheel_radius + base_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- =========================
+       Base link
+       ========================= -->
+    <link name="${base_frame}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="60.0"/>
+        <inertia ixx="3.0" ixy="0" ixz="0" iyy="5.0" iyz="0" izz="6.0"/>
+      </inertial>
+
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${base_length} ${base_width} ${base_height}"/>
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${base_length} ${base_width} ${base_height}"/>
+        </geometry>
+      </collision>
+    </link>
+
+
+  <!-- =========================
+       Wheel macro
+       ========================= -->
+  <xacro:macro name="wheel" params="name x y axis_sign:=1">
+    <link name="${name}_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="2.0"/>
+        <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+    </link>
+
+      <joint name="${name}_joint" type="continuous">
+        <parent link="${base_frame}"/>
+        <child link="${name}_link"/>
+        <!-- wheel center at chassis bottom plane -->
+        <origin xyz="${x} ${y} ${-base_height/2}" rpy="0 0 0"/>
+        <axis xyz="0 ${axis_sign} 0"/>
+        <limit effort="20.0" velocity="50.0"/>
+      </joint>
+  
+  </xacro:macro>
+
+  <!-- 4 wheels (front pair = tracks in real life, but in sim treat as wheels for skid-drive) -->
+  <xacro:wheel name="front_left"  x="${ wheelbase/2}" y="${ front_track_width/2}" axis_sign="1"/>
+  <xacro:wheel name="front_right" x="${ wheelbase/2}" y="${-front_track_width/2}" axis_sign="1"/>
+  <xacro:wheel name="rear_left"   x="${-wheelbase/2}" y="${ rear_track_width/2}" axis_sign="1"/>
+  <xacro:wheel name="rear_right"  x="${-wheelbase/2}" y="${-rear_track_width/2}" axis_sign="1"/>
+  <!-- <xacro:wheel name="rear_left"   x="${-wheelbase/2}" y="${ front_track_width/2}" axis_sign="1"/>
+  <xacro:wheel name="rear_right"  x="${-wheelbase/2}" y="${-front_track_width/2}" axis_sign="1"/> -->
+
+  <!-- <xacro:macro name="wheel_friction" params="link_name">
+    <gazebo reference="${link_name}">
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+      <kp>1000000.0</kp>
+      <kd>10.0</kd>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:wheel_friction link_name="front_left_link"/>
+  <xacro:wheel_friction link_name="rear_left_link"/>
+  <xacro:wheel_friction link_name="front_right_link"/>
+  <xacro:wheel_friction link_name="rear_right_link"/> -->
+
+  <xacro:macro name="wheel_contact" params="link
+                                           mu_roll:=0.8 mu_lat:=0.12
+                                           slip_roll:=0.0 slip_lat:=0.25
+                                           kp:=5000000 kd:=80.0">
+    <gazebo reference="${link}">
+      <!-- ลด mu2 / เพิ่ม slip2 เพื่อมให้เลี้ยวง่ายขึ้น -->
+      <mu1>${mu_roll}</mu1>
+      <mu2>${mu_lat}</mu2>
+
+      <kp>${kp}</kp>
+      <kd>${kd}</kd>
+
+      <fdir1>1 0 0</fdir1>
+
+      <slip1>${slip_roll}</slip1>
+      <slip2>${slip_lat}</slip2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:wheel_contact link="front_left_link"/>
+  <xacro:wheel_contact link="front_right_link"/>
+  <xacro:wheel_contact link="rear_left_link"/>
+  <xacro:wheel_contact link="rear_right_link"/>
+  
+
+  <!-- =========================
+       Sensor frames (static)
+       ========================= -->
+  <link name="${imu_frame}"/>
+  <joint name="imu_joint" type="fixed">
+    <parent link="${base_frame}"/>
+    <child link="${imu_frame}"/>
+    <origin xyz="0.10 0.00 0.20" rpy="0 0 0"/>
+  </joint>
+
+  <link name="${gps_frame}"/>
+  <joint name="gps_joint" type="fixed">
+    <parent link="${base_frame}"/>
+    <child link="${gps_frame}"/>
+    <origin xyz="0.30 0.00 0.50" rpy="0 0 0"/>
+  </joint>
+
+  <link name="${zed_frame}"/>
+  <joint name="zed_joint" type="fixed">
+    <parent link="${base_frame}"/>
+    <child link="${zed_frame}"/>
+    <origin xyz="0.35 0.00 0.45" rpy="0 0 0"/>
+  </joint>
+
+  <link name="${us_front}"/>
+  <joint name="us_front_joint" type="fixed">
+    <parent link="${base_frame}"/>
+    <child link="${us_front}"/>
+    <origin xyz="0.50 0.00 0.25" rpy="0 0 0"/>
+  </joint>
+
+  <link name="${us_left}"/>
+  <joint name="us_left_joint" type="fixed">
+    <parent link="${base_frame}"/>
+    <child link="${us_left}"/>
+    <origin xyz="0.30 0.20 0.25" rpy="0 0 0.35"/>
+  </joint>
+
+  <link name="${us_right}"/>
+  <joint name="us_right_joint" type="fixed">
+    <parent link="${base_frame}"/>
+    <child link="${us_right}"/>
+    <origin xyz="0.30 -0.20 0.25" rpy="0 0 -0.35"/>
+  </joint>
+
+  <!-- =========================
+       ros2_control (diff drive over 4 wheel joints)
+       ========================= -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+
+    <joint name="front_left_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="rear_left_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="front_right_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="rear_right_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+</ros2_control>
+
+  <!-- =========================
+       Gazebo plugins: IMU, Depth camera, Ultrasonic range sensors
+       ========================= -->
+
+  <xacro:arg name="controllers_yaml" default=""/>
+  <gazebo>
+    <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+      <parameters>$(arg controllers_yaml)</parameters>
+    </plugin>
+  </gazebo>
+
+  <!-- IMU -->
+  <gazebo reference="${imu_frame}">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.05</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.05</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.05</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=/imu/data</remapping>
+        </ros>
+        <frame_name>${imu_frame}</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- Depth camera (simulate ZED) -->
+  <gazebo reference="${zed_frame}">
+    <sensor name="zed_rgb" type="camera">
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+
+      <camera>
+        <horizontal_fov>1.0</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.2</near>
+          <far>10.0</far>
+        </clip>
+      </camera>
+
+      <plugin name="zed_camera_plugin" filename="libgazebo_ros_camera.so">
+        <ros>
+          <namespace>/zed</namespace>
+          <remapping>~/image_raw:=/zed/image_raw</remapping>
+          <remapping>~/camera_info:=/zed/camera_info</remapping>
+        </ros>
+        <frame_name>${zed_frame}</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- <gazebo reference="front_left_link">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  <gazebo reference="front_right_link">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  <gazebo reference="rear_left_link">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  <gazebo reference="rear_right_link">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo> -->
+
+
+  <!-- Ultrasonic sensors (range) -->
+  <xacro:macro name="ultrasonic" params="ref name topic">
+    <gazebo reference="${ref}">
+      <sensor name="${name}" type="ray">
+        <always_on>true</always_on>
+        <update_rate>20</update_rate>
+
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>5</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.2</min_angle>
+              <max_angle>0.2</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>0.02</min>
+            <max>3.0</max>
+            <resolution>0.01</resolution>
+          </range>
+        </ray>
+
+        <plugin name="${name}_plugin" filename="libgazebo_ros_ray_sensor.so">
+          <ros>
+            <remapping>~/out:=${topic}</remapping>
+          </ros>
+          <frame_name>${ref}</frame_name>
+          <output_type>sensor_msgs/LaserScan</output_type>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:ultrasonic ref="${us_front}" name="us_front" topic="/ultrasonic/front"/>
+  <xacro:ultrasonic ref="${us_left}"  name="us_left"  topic="/ultrasonic/left"/>
+  <xacro:ultrasonic ref="${us_right}" name="us_right" topic="/ultrasonic/right"/>
+
+</robot>
